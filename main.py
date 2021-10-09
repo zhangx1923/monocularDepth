@@ -1,7 +1,7 @@
 from torchvision import models, transforms
 from torchvision.io.image import read_image
 from torchvision.models.segmentation import fcn_resnet50, fcn_resnet101
-from torchvision.models.detection import fasterrcnn_resnet50_fpn
+from torchvision.models.detection import fasterrcnn_resnet50_fpn, maskrcnn_resnet50_fpn
 import torch
 from PIL import Image
 from torchvision.transforms.functional import normalize
@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torchvision.transforms.functional as F
 from torchvision.transforms.functional import convert_image_dtype
-from torchvision.utils import draw_segmentation_masks
+from torchvision.utils import draw_segmentation_masks, draw_bounding_boxes
 
 plt.rcParams["savefig.bbox"] = 'tight'
 def show(imgs):
@@ -162,11 +162,73 @@ def test_fasterrcnn():
         model.cuda()
     model = model.eval()
     
-    output = model(batch)
+    outputs = model(batch)
+    print(outputs)
+    #绘制出来可能性大于0.8的obejct
+    score_threshold = .8
+    img_with_boxes = [
+        draw_bounding_boxes(img_int.cpu(), boxes=output['boxes'][output['scores'] > score_threshold].cpu(), width=4)
+        for img_int, output in zip(batch_int, outputs)
+    ]
+    show(img_with_boxes)
 
 #instance segmentation
 def test_mask_rcnn():
-    pass
+    #test picture path
+    img_path = "test img/"
+
+    img_list = []
+    transform = transforms.Compose([
+        transforms.Resize((37*5,122*5))
+    ])
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    for i in range(2):
+        img_name = str(i)
+        while len(img_name) < 6:
+            img_name = "0" + img_name
+        #img_list.append(transform(read_image(img_path + img_name + ".png").to(device)))
+        img_list.append(transform(read_image(img_path + img_name + ".png").to(device)))
+
+    batch_int = torch.stack(img_list)
+    batch = convert_image_dtype(batch_int, dtype=torch.float)
+
+    model = maskrcnn_resnet50_fpn(pretrained=True, progress=False)
+    if torch.cuda.is_available():
+        model.cuda()
+    model = model.eval()
+
+    output = model(batch)
+    #print(output)
+    output = output[0]
+
+    inst_classes = [
+    '__background__', 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus',
+    'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'N/A', 'stop sign',
+    'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
+    'elephant', 'bear', 'zebra', 'giraffe', 'N/A', 'backpack', 'umbrella', 'N/A', 'N/A',
+    'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball',
+    'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket',
+    'bottle', 'N/A', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl',
+    'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza',
+    'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'N/A', 'dining table',
+    'N/A', 'N/A', 'toilet', 'N/A', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone',
+    'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'N/A', 'book',
+    'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'
+    ]
+
+    proba_threshold = 0.5
+    score_threshold = .75
+
+    boolean_masks = [
+        out['masks'][out['scores'] > score_threshold] > proba_threshold
+        for out in output
+    ]
+
+    img_with_masks = [
+        draw_segmentation_masks(img, mask.squeeze(1))
+        for img, mask in zip(batch_int, boolean_masks)
+    ]
+    show(img_with_masks)
 
 if __name__ == "__main__":
-    test_fcn()
+    test_mask_rcnn()
