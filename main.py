@@ -179,7 +179,7 @@ def test_mask_rcnn():
 
     img_list = []
     transform = transforms.Compose([
-        transforms.Resize((37*5,122*5))
+        transforms.Resize((37*3,122*3))
     ])
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     for i in range(2):
@@ -199,7 +199,6 @@ def test_mask_rcnn():
 
     output = model(batch)
     #print(output)
-    output = output[0]
 
     inst_classes = [
     '__background__', 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus',
@@ -216,7 +215,11 @@ def test_mask_rcnn():
     'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'
     ]
 
-    proba_threshold = 0.5
+    inst_class_to_idx = {cls: idx for (idx, cls) in enumerate(inst_classes)}
+
+    print([inst_classes[label] for label in output[0]['labels']])
+    print(output[0]['scores'])
+    proba_threshold = 0.5  #这是干嘛的？
     score_threshold = .75
 
     boolean_masks = [
@@ -225,8 +228,8 @@ def test_mask_rcnn():
     ]
 
     img_with_masks = [
-        draw_segmentation_masks(img, mask.squeeze(1))
-        for img, mask in zip(batch_int, boolean_masks)
+        draw_segmentation_masks(img, mask.squeeze(1),alpha=.9, colors='red')
+        for img, mask in zip(batch_int.to('cpu'), boolean_masks)
     ]
     show(img_with_masks)
 
