@@ -1,11 +1,11 @@
 import copy
 #give picture ID, return corresponding label
 class GetLabel:
-    def __init__(self, f_path = "label_2/"):
+    def __init__(self, f_path = "test img/"):
         self.label_path = f_path
 
     #parse txt file
-     #type of ids: 1. list, 2.int
+    #type of ids: 1. list, 2.int
     def parse(self, ids):
         file_path_ls, label_ls = [], []
         if type(ids) == int:
@@ -32,6 +32,9 @@ class GetLabel:
             f.close()
         return label_ls
 
+
+    def getDistance(self):
+        pass
 if __name__ == "__main__":
     gs = GetLabel()
     print(gs.parse(1))
