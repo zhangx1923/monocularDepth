@@ -24,7 +24,7 @@ if __name__ == "__main__":
     parser.add_argument('--fold', help='k-fold cross validation', required=False, type=int, default=5)
     parser.add_argument('--epoch', help='epoch', required=False, type=int, default=50)
     parser.add_argument('--batch', help='batch size', required=False, type=int, default=16)
-    
+
 
     
 
@@ -41,6 +41,11 @@ if __name__ == "__main__":
     #获取配置文件信息
     conf = Conf()
     CSVdata = conf.getContent("csv_data")
+    feature_col = conf.getContent("feature_col").split(" ")
+    label_col = conf.getContent("label_col").split(" ")
+    feature_count, label_count = len(feature_col), len(label_col)
+    #将feature列和label合并，label放在后面
+    unin_col = feature_col + label_col
 
     #获取数据
     if opt.generate_data != "old" or not os.path.exists(CSVdata):
@@ -55,11 +60,11 @@ if __name__ == "__main__":
         #随机采样(无放回)
         index = [i for i in range(0, len(df))]
         random.shuffle(index)
-        in_sample, out_sample = df.iloc[index[:opt.in_sample],:-1].values, df.iloc[index[opt.in_sample:],:-1].values
+        in_sample, out_sample = df.iloc[index[:opt.in_sample],unin_col].values, df.iloc[index[opt.in_sample:],unin_col].values
     else:
         print("无随机")
-        in_sample, out_sample= df.iloc[:opt.in_sample,:-1].values, df.iloc[opt.in_sample:,:-1].values
+        in_sample, out_sample= df.iloc[:opt.in_sample,unin_col].values, df.iloc[opt.in_sample:,unin_col].values
 
-    train(opt, in_sample)
+    train(opt, in_sample, feature_count, label_count)
 
-    inference(out_sample)
+    inference(out_sample, feature_count, label_count)

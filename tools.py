@@ -43,4 +43,21 @@ class Conf:
 #可视化功能
 class Visualization:
     def __init__(self) -> None:
+        self.viz = Visdom()
+        assert self.viz.check_connection()
+
+    #曲线
+    def line(self):
+        pass
+
+    #散点图
+    def scatter(self):
+        pass
+
+    #显示文字
+    def text(self):
+        pass
+
+    #柱形图
+    def bar(self):
         pass

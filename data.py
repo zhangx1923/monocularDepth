@@ -44,7 +44,7 @@ class GenerateData:
     def generateCSV(self, ids):
         df = pd.DataFrame(columns=['filename', 'class', 'truncated', 'occluded', 'observation angle', \
                            'xmin', 'ymin', 'xmax', 'ymax', 'height', 'width', 'length', \
-                           'xloc', 'yloc', 'zloc', 'rot_y'])
+                           'rot_y','xloc', 'yloc', 'zloc'])
         #csv文件中的行号
         count = 0
         for i in ids:

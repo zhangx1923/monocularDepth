@@ -12,7 +12,9 @@ def metrics(pred: list, label: list):
 #random_sample: 是否随机采样，0随机
 #in_sample：样本内数据个数
 #df：所有数据（样本内）dataframe
-def train(opt, df):
+#feature_count数据集中特征的个数
+#label_count数据集中标签的个数
+def train(opt, df, feature_count, label_count):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = MonocularModel()
     if torch.cuda.is_available():
@@ -25,8 +27,8 @@ def train(opt, df):
     #kf = KFold(opt.fold, shuffle=True, random_state=None)
     kf = KFold(opt.fold)
     for trn_ids, tst_ids in kf.split(df): 
-        trn_X, trn_y = df[trn_ids][:, 1:-1], df[trn_ids][:, -1]
-        tst_X, tst_y = df[tst_ids][:, 1:-1], df[tst_ids][:, -1]    
+        trn_X, trn_y = df[trn_ids][:, :feature_count], df[trn_ids][:, feature_count:]
+        tst_X, tst_y = df[tst_ids][:, :feature_count], df[tst_ids][:, feature_count:]    
 
         # Generators
         training_set = Dataset([ind for ind in range(0, len(trn_y))], trn_X, trn_y)
@@ -50,7 +52,7 @@ def train(opt, df):
             #可视化
 
 #df：所有数据（样本外）dataframe
-def inference(df):
+def inference(df, feature_count, label_count):
     model = MonocularModel()
     if torch.cuda.is_available():
         model.cuda()
@@ -61,7 +63,7 @@ def inference(df):
     vis = Visualization()
     
     for ind in range(len(df)):
-        feature, label = df[ind][:-1], df[ind][-1]
+        feature, label = df[ind][:feature_count], df[ind][feature_count:]
         output = model(feature)
 
         #计算各种指标
