@@ -42,22 +42,49 @@ class Conf:
 
 #可视化功能
 class Visualization:
-    def __init__(self) -> None:
-        self.viz = Visdom()
-        assert self.viz.check_connection()
+    def __init__(self, env = "monocular") -> None:
+        self.viz = Visdom(env=env)
+        assert self.viz.check_connection(), \
+            "No connection could be found!"
+        
+        #visdom中显示文字的窗口
+        self.txt_win = None
+        #显示散点图的窗口
+        self.sca_win = None
+        #显示曲线的窗口
+        self.line_win = None
+        #显示柱状体的窗口
+        self.bar_win = None
+
+        self.env_name = env
 
     #曲线
-    def line(self):
-        pass
+    def line(self, X, y):
+        if self.line_win == None:
+            self.line_win = self.viz.line(X,y)
+        else:
+            self.viz.scatter(X,y,win=self.line_win, update="new")
 
     #散点图
-    def scatter(self):
-        pass
+    def scatter(self, X, y):
+        if self.sca_win == None:
+            self.sca_win = self.viz.scatter(X,y)
+        else:
+            self.viz.scatter(X,y,win=self.sca_win, update="new")
 
     #显示文字
-    def text(self):
-        pass
+    def text(self, msg):
+        if self.txt_win == None:
+            self.txt_win = self.viz.text(msg)
+        else:
+            self.viz.text(msg, win=self.txt_win, append=True)
 
     #柱形图
-    def bar(self):
-        pass
+    def bar(self, X, y):
+        if self.bar_win == None:
+            self.bar_win = self.viz.bar(X,y)
+        else:
+            self.viz.bar(X,y, win=self.bar_win, update="new")
+
+    def save(self):
+        self.viz.save([self.env_name])

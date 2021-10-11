@@ -1,5 +1,5 @@
 import pandas as pd
-from model import MonocularModel, Dataset
+from model import EstDepth, Dataset
 from tools import Visualization
 from sklearn.model_selection import KFold
 import torch

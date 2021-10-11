@@ -6,6 +6,7 @@ import torch
 from PIL import Image
 from torchvision.transforms.functional import normalize
 import numpy as np
+from torch import nn
 import matplotlib.pyplot as plt
 import torchvision.transforms.functional as F
 from torchvision.transforms.functional import convert_image_dtype
@@ -28,8 +29,22 @@ class Dataset(torch.utils.data.Dataset):
         X, y = self.attr[ID], self.label[ID] 
         return torch.from_numpy(X).float(), torch.from_numpy(np.array([y])).float()
 
-class MonocularModel():
-    pass
+#input 4维度, xmin, ymin, xmax, ymax,
+#output 1维, zloc=distance
+class EstDepth(nn.Module):
+    def __init__(self, in_dim, n_hidden_1,n_hidden_2,n_hidden_3,n_hidden_4, out_dim):
+        super(EstDepth, self).__init__()
+        self.layer1 = nn.Sequential(nn.Linear(in_dim, n_hidden_1), nn.ReLU(True))
+        self.layer2 = nn.Sequential(nn.Linear(n_hidden_1, n_hidden_2), nn.ReLU(True))
+        self.layer3 = nn.Sequential(nn.Linear(n_hidden_2, n_hidden_3), nn.ReLU(True))
+        self.layer4 = nn.Sequential(nn.Linear(n_hidden_3, out_dim))
+ 
+    def forward(self, x):
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.layer4(x)
+        return x
 
 
 plt.rcParams["savefig.bbox"] = 'tight'
