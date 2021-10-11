@@ -11,6 +11,23 @@ import torchvision.transforms.functional as F
 from torchvision.transforms.functional import convert_image_dtype
 from torchvision.utils import draw_segmentation_masks, draw_bounding_boxes
 
+class Dataset(torch.utils.data.Dataset):
+  def __init__(self, list_IDs, attr, label):
+        self.attr = attr
+        self.label = label
+        self.list_IDs = list_IDs
+
+  def __len__(self):
+        return len(self.list_IDs)
+
+  def __getitem__(self, index):
+        # Select sample
+        ID = self.list_IDs[index]
+
+        # Load data and get label
+        X, y = self.attr[ID], self.label[ID] 
+        return torch.from_numpy(X).float(), torch.from_numpy(np.array([y])).float()
+
 class MonocularModel():
     pass
 
