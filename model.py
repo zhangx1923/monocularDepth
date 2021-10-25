@@ -2,6 +2,7 @@ from torchvision import models, transforms
 from torchvision.io.image import read_image
 from torchvision.models.segmentation import fcn_resnet50, fcn_resnet101
 from torchvision.models.detection import fasterrcnn_resnet50_fpn, maskrcnn_resnet50_fpn
+from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 import torch
 from PIL import Image
 from torchvision.transforms.functional import normalize
@@ -11,8 +12,53 @@ import matplotlib.pyplot as plt
 import torchvision.transforms.functional as F
 from torchvision.transforms.functional import convert_image_dtype
 from torchvision.utils import draw_segmentation_masks, draw_bounding_boxes
+import torch.nn.functional as F
+import torchvision.transforms as transforms
+import os
+from torch.utils.data import Dataset
+import pandas as pd
+from data import GenerateData
+import transforms as T
+import util
+from skimage import transform as sktsf
 
-class Dataset(torch.utils.data.Dataset):
+def inverse_normalize(img):
+    # approximate un-normalize for visualize
+    return (img * 0.225 + 0.45).clip(min=0, max=1) * 255
+
+
+def pytorch_normalze(img):
+    """
+    https://github.com/pytorch/vision/issues/223
+    return appr -1~1 RGB
+    """
+    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                std=[0.229, 0.224, 0.225])
+    img = normalize(torch.from_numpy(img))
+    return img.numpy()
+
+
+def preprocess(img, height, weight, scale):
+    """Preprocess an image for feature extraction.
+    After resizing the image, the image is subtracted by a mean image value
+    :obj:`self.mean`.
+    Args:
+        img (~numpy.ndarray): An image. This is in CHW and RGB format.
+            The range of its value is :math:`[0, 255]`.
+    Returns:
+        ~numpy.ndarray: A preprocessed image.
+    """
+    C, H, W = img.shape
+    # scaleH = H / height
+    # scaleW = W / weight
+    img = img / 255.
+    img = sktsf.resize(img, (C, height * scale, weight*scale), mode='reflect',anti_aliasing=False)
+    # both the longer and shorter should be less than
+    # max_size and min_size
+    return pytorch_normalze(img)
+
+#用于训练获取深度信息的数据集
+class Distance_DS(torch.utils.data.Dataset):
   def __init__(self, list_IDs, attr, label):
         self.attr = attr
         self.label = label
@@ -29,11 +75,176 @@ class Dataset(torch.utils.data.Dataset):
         X, y = self.attr[ID], self.label[ID] 
         return torch.from_numpy(X).float(), torch.from_numpy(np.array([y])).float()
 
+class Transform(object):
+
+    def __init__(self, height=375, weight=1242, scale=.8):
+        self.height = height
+        self.weight = weight
+        self.scale = scale
+
+    def __call__(self, in_data):
+        img, bbox, label = in_data
+        # print(img, bbox, label)
+        _, H, W = img.shape
+        img = preprocess(img, self.height, self.weight, self.scale)
+        _, o_H, o_W = img.shape
+        scaleH = o_H / H
+        scaleW = o_W / W
+        bbox = util.resize_bbox(bbox, (H, W), (o_H, o_W))
+
+        #horizontally flip
+        img, params = util.random_flip(
+            img, x_random=True, return_param=True)
+        bbox = util.flip_bbox(
+            bbox, (o_H, o_W), x_flip=params['x_flip'])
+
+        return img, bbox, label, scaleH, scaleW
+
+#用于获取目标检测的数据集
+#一张图片多个object，导致label的维度不一致，agument dataloader's collate_fn
+#dataset 要求一个id对应一张图片，而非一个obejct bbox、
+class Detect_DS(Dataset):
+    def __init__(self, label_dir, root_dir):
+        """
+        Args:
+            label_dir (string): Path to the txt file with annotations.
+            root_dir (string): Directory with all the images.
+            transform (callable, optional): Optional transform to be applied
+                on a sample.
+        """
+        self.label_dir = label_dir
+        self.root_dir = root_dir
+        self.transform = Transform()
+
+    def __len__(self):
+        label_files, img_files = os.listdir(self.label_dir), os.listdir(self.root_dir)
+        assert len(label_files) == len(img_files)
+        return len(label_files)
+
+    #idx stands for image id (image name = "00..0"+idx + ".jpg")
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        img_name = str(idx)
+        while len(img_name) < 6:
+            img_name = "0" + img_name
+        label_name = img_name
+        img_name += ".png"
+        label_name += ".txt"
+        img_path = os.path.join(self.root_dir, img_name)
+        label_path = os.path.join(self.label_dir, label_name)
+        image = Image.open(img_path).convert("RGB")
+        image = np.asarray(image, dtype=np.float32)
+
+        gd = GenerateData()
+        type_to_int = gd.get_type_int()
+
+        with open(label_path) as f:
+            label_region = list(l.split("\n")[0].split(" ") for l in f.readlines() if "DontCare" not in l)
+        #print(label_region)
+        labels, bbox = list(), list()
+        # print(label_region)
+        for l in label_region:
+            labels.append(type_to_int[l[0]])
+            bbox.append([l[i] for i in [4,5,6,7]])
+
+        bbox = np.stack(bbox).astype(np.float32)
+        labels = np.stack(labels).astype(np.int64)
+        # print(bbox, labels)
+        if image.ndim == 2:
+            # reshape (H, W) -> (1, H, W)
+            image = image[np.newaxis]
+        else:
+            # transpose (H, W, C) -> (C, H, W)
+            image = image.transpose((2, 0, 1))
+
+        image, bbox, labels, scaleH, scaleW = self.transform((image, bbox, labels))
+
+        target = {"boxes": torch.from_numpy(bbox.copy()), "labels":torch.from_numpy(labels.copy())}
+        return torch.from_numpy(image.copy()), target.copy()
+        #print(image.copy().shape, bbox.copy().shape, labels.copy().shape)
+        #print(target)
+        #print(bbox.shape, image.shape)
+        #return image.copy(), bbox.copy(), labels.copy(), [scaleH], [scaleW]
+
+
+
+# class Detect_DS(Dataset):
+#     def __init__(self, csv_file, root_dir, transform=None):
+#         """
+#         Args:
+#             label_dir (string): Path to the txt file with annotations.
+#             root_dir (string): Directory with all the images.
+#             transform (callable, optional): Optional transform to be applied
+#                 on a sample.
+#         """
+#         self.label = pd.read_csv(csv_file)
+#         self.root_dir = root_dir
+#         self.transform = transform
+
+#     def __len__(self):
+#         return len(self.label)
+
+#     #idx stands for image id (image name = "00..0"+idx + ".jpg")
+#     def __getitem__(self, idx):
+#         if torch.is_tensor(idx):
+#             idx = idx.tolist()
+
+#         img_name = os.path.join(self.root_dir,
+#                                 self.label.iloc[idx, 0])
+#         image = Image.open(img_name).convert("RGB").resize((1200,370))
+
+#         label_region_useful = self.label.iloc[idx, [1,5,6,7,8]]
+        
+#         #print(label_region_useful[0])
+#         targets = {}
+#         targets["label"] = label_region_useful[0]
+#         targets["boxes"] = [label_region_useful[1],label_region_useful[2],label_region_useful[3],label_region_useful[4]]
+#         # targets = np.array([targets])
+#         # label_region_useful = label_region_useful.astype('float').reshape(-1, 2)
+#         if self.transform is not None:
+#             image = self.transform(image)
+
+#         return image, targets
+
+#object detect model
+def Detect_Model():
+    model = fasterrcnn_resnet50_fpn(pretrained=True)
+    #device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    # replace the classifier with a new one, that has
+    # num_classes which is user-defined
+    num_classes = 9  # 1 class (person) + background
+    # get number of input features for the classifier
+    in_features = model.roi_heads.box_predictor.cls_score.in_features
+    # replace the pre-trained head with a new one
+    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
+    return model
+
+# class Detect_Model(nn.Module):
+#     def __init__(self):
+#         super().__init__()
+#         self.conv1 = nn.Conv2d(3, 6, 5)
+#         self.pool = nn.MaxPool2d(2, 2)
+#         self.conv2 = nn.Conv2d(6, 16, 5)
+#         self.fc1 = nn.Linear(16 * 5 * 5, 120)
+#         self.fc2 = nn.Linear(120, 84)
+#         self.fc3 = nn.Linear(84, 10)
+
+#     def forward(self, x):
+#         x = self.pool(F.relu(self.conv1(x)))
+#         x = self.pool(F.relu(self.conv2(x)))
+#         x = torch.flatten(x, 1) # flatten all dimensions except batch
+#         x = F.relu(self.fc1(x))
+#         x = F.relu(self.fc2(x))
+#         x = self.fc3(x)
+#         return x
+
 #input 4维度, xmin, ymin, xmax, ymax,
 #output 1维, zloc=distance
-class EstDepth(nn.Module):
-    def __init__(self, in_dim, n_hidden_1,n_hidden_2,n_hidden_3,n_hidden_4, out_dim):
-        super(EstDepth, self).__init__()
+class EstDepth_Model(nn.Module):
+    def __init__(self, in_dim, n_hidden_1,n_hidden_2,n_hidden_3, out_dim):
+        super(EstDepth_Model, self).__init__()
         self.layer1 = nn.Sequential(nn.Linear(in_dim, n_hidden_1), nn.ReLU(True))
         self.layer2 = nn.Sequential(nn.Linear(n_hidden_1, n_hidden_2), nn.ReLU(True))
         self.layer3 = nn.Sequential(nn.Linear(n_hidden_2, n_hidden_3), nn.ReLU(True))
@@ -286,3 +497,4 @@ def test_mask_rcnn():
 
 # if __name__ == "__main__":
 #     test_mask_rcnn()
+

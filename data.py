@@ -40,26 +40,18 @@ class GenerateData:
                      'Misc':7}
 
     #parse txt file, and generate csv file from these txt files
-    #type of ids: list of ids you want to parse, data type of single ids is int
-    def generateCSV(self, ids):
+    def generateCSV(self):
         df = pd.DataFrame(columns=['filename', 'class', 'truncated', 'occluded', 'observation angle', \
                            'xmin', 'ymin', 'xmax', 'ymax', 'height', 'width', 'length', \
                            'rot_y','xloc', 'yloc', 'zloc'])
         #csv文件中的行号
         count = 0
-        for i in ids:
-            #将数字id转化为文件名
-            id_str = str(i)
-            while len(id_str) < 6:
-                id_str = "0" + id_str
-            file_path_ls = self.label_path + id_str + ".txt"
-
-            f = open(file_path_ls, 'r')
-            data_content = list(l.split("\n")[0].split(" ") for l in f.readlines() if "DontCare" not in l)
-            f.close()
+        for file_path_ls in os.listdir(self.label_path):
+            with open(os.path.join(self.label_path,file_path_ls), 'r') as f: 
+                data_content = list(l.split("\n")[0].split(" ") for l in f.readlines() if "DontCare" not in l)
             #generate csv file
             for dc in data_content:
-                df.at[count, 'filename'] = id_str + ".txt"
+                df.at[count, 'filename'] = file_path_ls.split(".")[0] + ".png"
 
                 df.at[count, 'class'] = self.__type_to_int[dc[0]]
                 df.at[count, 'truncated'] = dc[1]
@@ -87,7 +79,8 @@ class GenerateData:
                 count += 1
         df.to_csv(self.csv_data, index=False)
 
-
+    def get_type_int(self):
+        return self.__type_to_int
 
 
 # if __name__ == "__main__":
