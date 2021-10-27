@@ -160,8 +160,20 @@ class Detect_DS(Dataset):
             image = image.transpose((2, 0, 1))
 
         image, bbox, labels, scaleH, scaleW = self.transform((image, bbox, labels))
+        
+        target = {}
+        target["boxes"] = torch.from_numpy(bbox.copy())
+        target["labels"] = torch.from_numpy(labels.copy())
+        #target["masks"] = masks
+        target["image_id"] = torch.tensor([idx])
+        area = (target["boxes"][:, 3] - target["boxes"][:, 1]) * (target["boxes"][:, 2] - target["boxes"][:, 0])
+        target["area"] = area
+        # suppose all instances are not crowd
+        num_objs = len(labels)
+        iscrowd = torch.zeros((num_objs,), dtype=torch.int64)
+        target["iscrowd"] = iscrowd
 
-        target = {"boxes": torch.from_numpy(bbox.copy()), "labels":torch.from_numpy(labels.copy())}
+
         return torch.from_numpy(image.copy()), target.copy()
         #print(image.copy().shape, bbox.copy().shape, labels.copy().shape)
         #print(target)

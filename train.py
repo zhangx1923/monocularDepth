@@ -113,9 +113,10 @@ def testTrainImg(labeldata):
 
     model = Detect_Model()
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    device = torch.device('cpu')
     model.to(device)
 
-    batch_size = 4
+    batch_size = 1
     epoch_count = 10
 
     trainset = Detect_DS(label_dir = labeldata, root_dir='dataset/img')
@@ -131,14 +132,14 @@ def testTrainImg(labeldata):
     trainloader = DataLoader(trainset,\
                              batch_size=batch_size,\
                              shuffle=True,\
-                             num_workers=2,\
+                             num_workers=1,\
                              collate_fn=collate_fn)
 
     
     testloader = DataLoader(testset,\
                             batch_size=1,\
                             shuffle=False,\
-                            num_workers=2,\
+                            num_workers=1,\
                             collate_fn=collate_fn)
 
     classes = ('Car', 'Van', 'Truck','Pedestrian', 'Person_sitting', 
