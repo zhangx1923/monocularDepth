@@ -22,9 +22,9 @@ if __name__ == "__main__":
     
     #模型参数
     parser.add_argument('--fold', help='k-fold cross validation', required=False, type=int, default=5)
-    parser.add_argument('--epoch', help='epoch', required=False, type=int, default=50)
+    parser.add_argument('--epoch', help='epoch', required=False, type=int, default=1)
     parser.add_argument('--batch', help='batch size', required=False, type=int, default=16)
-
+    parser.add_argument('--lr', help='learn rate', required=False, type=float, default=0.001)
     opt = parser.parse_args()
     
     #建立存放结果的文件夹和初始化写文件类
@@ -63,8 +63,9 @@ if __name__ == "__main__":
     else:
         print("无随机")
         in_sample, out_sample= df.iloc[:opt.in_sample,unin_col].values, df.iloc[opt.in_sample:,unin_col].values
-
-    # train(opt, in_sample, feature_count, label_count)
-
-    # inference(out_sample, feature_count, label_count)
-    testTrainImg(labeldata)
+    log.print("begin to train")
+    model_name = train(opt, in_sample, feature_count, label_count, log)
+    log.print("begin to inference")
+    inference(out_sample, feature_count, label_count, log, model_name)
+    log.print("done")
+    #testTrainImg(labeldata)

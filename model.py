@@ -73,7 +73,7 @@ class Distance_DS(torch.utils.data.Dataset):
 
         # Load data and get label
         X, y = self.attr[ID], self.label[ID] 
-        return torch.from_numpy(X).float(), torch.from_numpy(np.array([y])).float()
+        return torch.from_numpy(X).float(), torch.from_numpy(y).float()
 
 class Transform(object):
 

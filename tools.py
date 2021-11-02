@@ -9,12 +9,13 @@ class Log:
     def __init__(self, file_location):
         if not os.path.exists(file_location):
             os.mkdir(file_location)
+        self.file_location = file_location
         self.log_loc = file_location + "/log.txt"
         self.err_loc = file_location + "/error.txt"
     
     #msg: 写入文件的内容,写入log file
     def print(self, msg):
-        with open(self.log_loc, "w", buffering=1) as f:
+        with open(self.log_loc, "a+", buffering=1) as f:
             f.write(msg + "\r\n")
             f.flush()
             #终端同步提醒
@@ -22,7 +23,7 @@ class Log:
 
     #msg: 写入文件的内容，写入error file
     def error(self, msg):
-        with open(self.err_loc, "w", buffering=1) as f:
+        with open(self.err_loc, "a+", buffering=1) as f:
             f.write(msg + "\r\n")
             f.flush()
             #终端同步提醒

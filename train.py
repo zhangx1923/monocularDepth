@@ -8,9 +8,17 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from engine import train_one_epoch, evaluate
 import utils
+from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
+from math import sqrt
+import pandas as pd
+import matplotlib.pyplot as plt
 
-def metrics(pred: list, label: list):
-    pass
+def metrics(pred, label):
+    #pred = pd.DataFrame(pred.cpu().detach().numpy()).fillna(0)
+    rmse_dnn = sqrt(mean_squared_error(label, pred))
+    r2_dnn = r2_score(label, pred)  
+    mae_dnn = mean_absolute_error(label, pred)
+    return rmse_dnn, r2_dnn, mae_dnn
 
 #进行训练
 #opt为程序开始时的参数集合，包含以下本函数需要使用的信息：
@@ -19,7 +27,7 @@ def metrics(pred: list, label: list):
 #df：所有数据（样本内）dataframe
 #feature_count数据集中特征的个数
 #label_count数据集中标签的个数
-def train(opt, df, feature_count, label_count):
+def train(opt, df, feature_count, label_count, log):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = EstDepth_Model(feature_count, 8, 4, 2, label_count)
     if torch.cuda.is_available():
@@ -31,6 +39,10 @@ def train(opt, df, feature_count, label_count):
     #划分训练集，测试集
     #kf = KFold(opt.fold, shuffle=True, random_state=None)
     kf = KFold(opt.fold)
+    current_k = 1
+
+    best_model_name = ""
+
     for trn_ids, tst_ids in kf.split(df): 
         trn_X, trn_y = df[trn_ids][:, :feature_count], df[trn_ids][:, feature_count:]
         tst_X, tst_y = df[tst_ids][:, :feature_count], df[tst_ids][:, feature_count:]    
@@ -38,7 +50,12 @@ def train(opt, df, feature_count, label_count):
         # Generators
         training_set = Distance_DS([ind for ind in range(0, len(trn_y))], trn_X, trn_y)
         training_generator = torch.utils.data.DataLoader(training_set, opt.batch, shuffle=True)
-        
+
+        criterion = torch.nn.MSELoss()
+        optimizer = optim.SGD(model.parameters(), lr = opt.lr)
+
+        rmse_list, r2_list, mae_list = [], [], []
+
         #train + test
         for ep in range(opt.epoch):
             #train
@@ -46,37 +63,77 @@ def train(opt, df, feature_count, label_count):
             for ii, (local_batch, local_lables) in enumerate(training_generator):
                 local_batch, local_lables = local_batch.to(device), local_lables.to(device)
                 output = model(local_batch)
-                #计算各种指标
-                metrics(output, local_lables)
-                #可视化
-                print(output, local_lables)
+                # print(output, local_lables)
+                loss = criterion(output, local_lables)     
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
             #test
             model.eval()
             output = model(torch.from_numpy(tst_X).float().to(device))
             #计算各种指标
-            metrics(output, tst_y)
-            print(output, tst_y)
+            rmse, r2, mae = metrics(pd.DataFrame(output.cpu().detach().numpy()).fillna(0), tst_y)
+            rmse_list.append(rmse)
+            r2_list.append(r2)
+            mae_list.append(mae)
+            log.print("K-fold:{}, epoch:{}, r2:{}, rmse:{}, mae:{}".format(current_k, ep+1, r2, rmse, mae))
             #可视化
+            #????
+        xaris = [i for i in range(1,opt.epoch+1)]
+        plt.subplot(2,2,1)
+        plt.plot(xaris, r2_list)
+        plt.xlabel("epoch")
+        plt.ylabel("R2")
+
+        plt.subplot(2,2,2)
+        plt.plot(xaris, rmse_list)
+        plt.xlabel("epoch")
+        plt.ylabel("rmse")
+
+        plt.subplot(2,2,3)
+        plt.plot(xaris, mae_list)
+        plt.xlabel("epoch")
+        plt.ylabel("mae")
+
+        k_file_name = log.file_location + "/fold-" + str(current_k)
+
+        plt.savefig(k_file_name + ".jpg")
+        plt.close(0)
+        
+        torch.save(model.state_dict(), k_file_name + ".pkl")
+
+        #选择最好的model返回其路径，这里暂时只返回最后一个flod的
+        best_model_name = k_file_name + ".pkl"
+        current_k += 1
+    return best_model_name
+        
 
 #df：所有数据（样本外）dataframe
-def inference(df, feature_count, label_count):
+def inference(df, feature_count, label_count, log, model_name):
     model = EstDepth_Model(feature_count, 8, 4, 2, label_count)
     if torch.cuda.is_available():
         model.cuda()
-    model.load_state_dict("path")
+    model.load_state_dict(torch.load(model_name))
     model.eval()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    #实例化可视化类
-    vis = Visualization()
+    # #实例化可视化类
+    # vis = Visualization()
     
+    output_list, label_list = [], []
     for ind in range(len(df)):
         feature, label = df[ind][:feature_count], df[ind][feature_count:]
-        output = model(torch.from_numpy(feature).float().to(device))
+        output = model(torch.from_numpy(feature).float().to(device)).cpu().detach().numpy()  
 
-        #计算各种指标
-        metrics(output, label)
+        output_list.append(output)
+        label_list.append(label)
+        log.print("ind:{}, inference:{}, label:{}".format(ind, output, label))
+    #计算各种指标
+    rmse, r2, mae = metrics(output_list, label_list)
+    log.print("r2:{}, rmse:{}, mae:{}".format(r2, rmse, mae))
         #可视化
+        #???
+        
 
 
 #augment dataload to solve one image with multi obejcts, so that tensor size is different
