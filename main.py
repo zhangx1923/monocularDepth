@@ -69,3 +69,4 @@ if __name__ == "__main__":
     inference(out_sample, feature_count, label_count, log, model_name)
     log.print("done")
     #testTrainImg(labeldata)
+    pass
