@@ -177,7 +177,7 @@ def trainEncoder(labeldata, opt, log):
     indices = torch.randperm(len(trainset)).tolist()
 
     trainset = torch.utils.data.Subset(trainset, indices[:opt.ts])
-    testset = torch.utils.data.Subset(testset, indices[opt.ts:5])
+    testset = torch.utils.data.Subset(testset, indices[opt.ts:])
 
     
 
