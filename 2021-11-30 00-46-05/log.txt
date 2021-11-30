@@ -1,0 +1,25 @@
+generating csv data....
+begin to train encoder part...
+Epoch: [0]  [0/1]  eta: 0:00:20  lr: 0.000005  loss: 46.4812 (46.4812)  loss_classifier: 1.8173 (1.8173)  loss_box_reg: 0.0000 (0.0000)  loss_objectness: 5.6871 (5.6871)  loss_rpn_box_reg: 38.9767 (38.9767)  time: 20.8330  data: 3.5639  max mem: 0
+Epoch: [0] Total time: 0:00:21 (21.0646 s / it)
+Running per image evaluation...
+Evaluate annotation type *bbox*
+DONE (t=0.02s).
+Test:  [0/1]  eta: 0:00:10  model_time: 7.1033 (7.1033)  evaluator_time: 0.1229 (0.1229)  time: 10.8046  data: 3.4868  max mem: 0
+Test: Total time: 0:00:11 (11.0187 s / it)
+Averaged stats:model_time: 7.1033 (7.1033)  evaluator_time: 0.1229 (0.1229)
+Accumulating evaluation results...
+DONE (t=0.01s).
+IoU metric: bbox
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.000
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.000
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.000
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.000
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.000
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.000
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.000
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.000
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.000
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.000
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.000
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.000
