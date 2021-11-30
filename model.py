@@ -221,8 +221,9 @@ class Detect_DS(Dataset):
 #         return image, targets
 
 #object detect model
-def Detect_Model():
-    model = fasterrcnn_resnet50_fpn(pretrained=True)
+#pre_train_para means wherther use pretrained parameter, boolean
+def Detect_Model(pre_train_para):
+    model = fasterrcnn_resnet50_fpn(pretrained=pre_train_para)
     #device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     # replace the classifier with a new one, that has
     # num_classes which is user-defined
@@ -421,7 +422,7 @@ def test_fasterrcnn():
         transforms.Resize((37*5,122*5))
     ])
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    for i in range(2):
+    for i in range(60,61):
         img_name = str(i)
         while len(img_name) < 6:
             img_name = "0" + img_name
@@ -432,6 +433,11 @@ def test_fasterrcnn():
     batch = convert_image_dtype(batch_int, dtype=torch.float)
 
     model = fasterrcnn_resnet50_fpn(pretrained=True, progress=False)
+    # num_classes = 91  # 1 class (person) + background
+    # # get number of input features for the classifier
+    # in_features = model.roi_heads.box_predictor.cls_score.in_features
+    # # replace the pre-trained head with a new one
+    # model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
     if torch.cuda.is_available():
         model.cuda()
     model = model.eval()
@@ -508,5 +514,5 @@ def test_mask_rcnn():
     show(img_with_masks)
 
 # if __name__ == "__main__":
-#     test_mask_rcnn()
+#     test_fasterrcnn()
 

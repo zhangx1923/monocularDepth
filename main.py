@@ -1,7 +1,7 @@
 import argparse
 from data import GenerateData
 from tools import Log, Conf
-from train import train, inference, testTrainImg
+from train import trainEncoder, trainDecoder, inferenceDecoder
 import os
 import time
 import pandas as pd
@@ -13,6 +13,7 @@ if __name__ == "__main__":
     parser.add_argument('--result_path', help="file location, including picture and saved model, such as xxx", required=False, type=str, default= "-1")
     #parser.add_argument('--img_path', help="存放用于训练和测试的image路径",required=False, type=str, default="img")
     parser.add_argument('--mode', help="ob stands for object detection, ed stands for estimating depth information",required=False, type=str, default="ed")
+    parser.add_argument('--print_freq', help='print msg frequency', required=False, type=int, default=2)
     
     #数据集参数
     parser.add_argument('--generate_data', help="是否重新生成数据,new--重新生成，old--旧数据", required=False, default="new", type=str)
@@ -22,9 +23,19 @@ if __name__ == "__main__":
     
     #模型参数
     parser.add_argument('--fold', help='k-fold cross validation', required=False, type=int, default=5)
-    parser.add_argument('--epoch', help='epoch', required=False, type=int, default=1)
-    parser.add_argument('--batch', help='batch size', required=False, type=int, default=16)
-    parser.add_argument('--lr', help='learn rate', required=False, type=float, default=0.001)
+    parser.add_argument('--epoch', help='epoch', required=False, type=int, default=10)
+    #batch size的设定对于encoder的train one epoch依旧生效
+    parser.add_argument('--batch', help='batch size', required=False, type=int, default=4)
+    parser.add_argument('--lr', help='learn rate', required=False, type=float, default=0.005)
+    parser.add_argument('--wd', help='weight_decay', required=False, type=float, default=0.0005)
+    parser.add_argument('--momentum', help='momentum', required=False, type=float, default=0.9)
+    parser.add_argument('--nw', help='num_workers', required=False, type=int, default=1)
+    parser.add_argument('--ts', help='trainning dataset size', required=False, type=int, default=3)
+    
+
+    #执行哪一部分训练
+    parser.add_argument('--model', help='decide to train encoder or decoder part', required=False, type=str, default="encoder")
+
     opt = parser.parse_args()
     
     #建立存放结果的文件夹和初始化写文件类
@@ -63,10 +74,16 @@ if __name__ == "__main__":
     else:
         print("无随机")
         in_sample, out_sample= df.iloc[:opt.in_sample,unin_col].values, df.iloc[opt.in_sample:,unin_col].values
-    log.print("begin to train")
-    model_name = train(opt, in_sample, feature_count, label_count, log)
-    log.print("begin to inference")
-    inference(out_sample, feature_count, label_count, log, model_name)
-    log.print("done")
-    #testTrainImg(labeldata)
-    pass
+    
+    if opt.model == "encoder":
+        log.print("begin to train encoder part...")
+        model_path = trainEncoder(labeldata, opt, log)
+        # log.print("begin to inference...")
+        # inferenceEncoder(model_path)
+        log.print("done!")
+    else:
+        log.print("begin to train decoder part...")
+        model_path = trainDecoder(opt, in_sample, feature_count, label_count, log)
+        log.print("begin to inference...")
+        inferenceDecoder(out_sample, feature_count, label_count, log, model_path)
+        log.print("done!")

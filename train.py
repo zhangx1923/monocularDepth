@@ -5,7 +5,6 @@ from sklearn.model_selection import KFold
 import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from tqdm import tqdm
 from engine import train_one_epoch, evaluate
 import utils
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
@@ -27,7 +26,7 @@ def metrics(pred, label):
 #df：所有数据（样本内）dataframe
 #feature_count数据集中特征的个数
 #label_count数据集中标签的个数
-def train(opt, df, feature_count, label_count, log):
+def trainDecoder(opt, df, feature_count, label_count, log):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = EstDepth_Model(feature_count, 8, 4, 2, label_count)
     if torch.cuda.is_available():
@@ -109,7 +108,7 @@ def train(opt, df, feature_count, label_count, log):
         
 
 #df：所有数据（样本外）dataframe
-def inference(df, feature_count, label_count, log, model_name):
+def inferenceDecoder(df, feature_count, label_count, log, model_name):
     model = EstDepth_Model(feature_count, 8, 4, 2, label_count)
     if torch.cuda.is_available():
         model.cuda()
@@ -166,72 +165,61 @@ def collate_fn(batch):
     # return images, boxes, labels , scale_h, scale_w
 
 
-def testTrainImg(labeldata):
-
-    model = Detect_Model()
+def trainEncoder(labeldata, opt, log):
+    model = Detect_Model(True)
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-    device = torch.device('cpu')
+    #device = torch.device('cpu')
     model.to(device)
-
-    batch_size = 1
-    epoch_count = 10
 
     trainset = Detect_DS(label_dir = labeldata, root_dir='dataset/img')
     testset = Detect_DS(label_dir = labeldata, root_dir='dataset/img')
 
-    # split the dataset in train and test set
     indices = torch.randperm(len(trainset)).tolist()
-    trainset = torch.utils.data.Subset(trainset, indices[:-50])
-    testset = torch.utils.data.Subset(testset, indices[-50:])
+
+    trainset = torch.utils.data.Subset(trainset, indices[:opt.ts])
+    testset = torch.utils.data.Subset(testset, indices[opt.ts:5])
 
     
 
     trainloader = DataLoader(trainset,\
-                             batch_size=batch_size,\
-                             shuffle=True,\
-                             num_workers=1,\
-                             collate_fn=collate_fn)
+                            batch_size=opt.batch,\
+                            shuffle=True,\
+                            num_workers=opt.nw,\
+                            collate_fn=collate_fn)
 
     
     testloader = DataLoader(testset,\
-                            batch_size=1,\
+                            batch_size=opt.batch,\
                             shuffle=False,\
-                            num_workers=1,\
+                            num_workers=opt.nw,\
                             collate_fn=collate_fn)
 
     classes = ('Car', 'Van', 'Truck','Pedestrian', 'Person_sitting', 
                 'Cyclist', 'Tram', 'Misc')
+
     # construct an optimizer
     params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = torch.optim.SGD(params, lr=0.005,
-                                momentum=0.9, weight_decay=0.0005)
-    # and a learning rate scheduler
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
-                                                   step_size=3,
-                                                   gamma=0.1)
-   
-    for epoch in range(epoch_count):  # loop over the dataset multiple times
-        # model.train()
-        # for i, (img, bbox, labels, scale_h, scale_w) in tqdm(enumerate(trainloader)):
-        #     target = []
-        #     img = list(img)
-        #     for i in range(len(img)):
-        #         d = {}
-        #         d["boxes"] = torch.tensor(bbox[i])
-        #         d["labels"] = torch.tensor(labels[i],dtype=torch.long)
-        #         target.append(d)
-        #         img[i] = torch.from_numpy(img[i])
-        #     output = model(img, target)
+    optimizer = torch.optim.SGD(params, lr=opt.lr, momentum=opt.momentum, weight_decay=opt.wd)
 
-        train_one_epoch(model, optimizer, trainloader, device, epoch, print_freq=10)
+    # and a learning rate scheduler
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
+
+    for epoch in range(opt.epoch):  # loop over the dataset multiple times
+        train_one_epoch(model, optimizer, trainloader, device, epoch, opt.print_freq, log)
         # update the learning rate
         lr_scheduler.step()
         # evaluate on the test dataset
-        evaluate(model, testloader, device=device)
+        evaluate(model, testloader, log, device=device)
 
-    print('Finished Training')   
-    PATH = 'cifar_net.pth'
+    log.print('Finished Training!')   
+    PATH = log.file_location + '/encoder.pth'
     torch.save(model.state_dict(), PATH)
+    return PATH
 
-def testTestImg():
-    pass
+# def inferenceEncoder(model_path):
+#     model = Detect_Model(False)
+#     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+#     # device = torch.device('cpu')
+#     model.to(device)
+#     model.load_state_dict(torch.load(model_path))
+#     model.eval()

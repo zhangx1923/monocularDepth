@@ -9,7 +9,7 @@ from coco_eval import CocoEvaluator
 from coco_utils import get_coco_api_from_dataset
 
 
-def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq):
+def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq, log):
     model.train()
     metric_logger = utils.MetricLogger(delimiter="  ")
     metric_logger.add_meter("lr", utils.SmoothedValue(window_size=1, fmt="{value:.6f}"))
@@ -24,12 +24,19 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq):
             optimizer, start_factor=warmup_factor, total_iters=warmup_iters
         )
 
-    for images, targets in metric_logger.log_every(data_loader, print_freq, header):
+    for images, targets in metric_logger.log_every(data_loader, print_freq, log, header):
+    # for images, targets in data_loader:   
         images = list(image.to(device) for image in images)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
-
-        loss_dict = model(images, targets)
         
+        #此处 model(img, tar)输出loss
+        #loss: {'loss_classifier': tensor(0.1335, grad_fn=<NllLossBackward0>), 'loss_box_reg': tensor(0.0052, grad_fn=<DivBackward0>), 
+        # 'loss_objectness': tensor(0.7394, grad_fn=<BinaryCrossEntropyWithLogitsBackward0>), 'loss_rpn_box_reg': tensor(0.0219, grad_fn=<DivBackward0>)}
+        #model(img)输出：
+        #[{'boxes': tensor([], size=(0, 4)), 'labels': tensor([], dtype=torch.int64), 'scores': tensor([])}]
+        loss_dict = model(images, targets)
+        # print("targets:",targets)
+        # print("loss:",loss_dict)
         losses = sum(loss for loss in loss_dict.values())
 
         # reduce losses over all GPUs for logging purposes
@@ -39,8 +46,8 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq):
         loss_value = losses_reduced.item()
 
         if not math.isfinite(loss_value):
-            print("Loss is {}, stopping training".format(loss_value))
-            print(loss_dict_reduced)
+            log.error("Loss is {}, stopping training".format(loss_value))
+            log.error(loss_dict_reduced)
             sys.exit(1)
 
         optimizer.zero_grad()
@@ -69,7 +76,7 @@ def _get_iou_types(model):
 
 
 @torch.no_grad()
-def evaluate(model, data_loader, device):
+def evaluate(model, data_loader, log, device):
     n_threads = torch.get_num_threads()
     # FIXME remove this and make paste_masks_in_image run on the GPU
     torch.set_num_threads(1)
@@ -80,20 +87,25 @@ def evaluate(model, data_loader, device):
 
     coco = get_coco_api_from_dataset(data_loader.dataset)
     iou_types = _get_iou_types(model)
-    coco_evaluator = CocoEvaluator(coco, iou_types)
+    coco_evaluator = CocoEvaluator(coco, log, iou_types)
 
-    for images, targets in metric_logger.log_every(data_loader, 100, header):
+    for images, targets in metric_logger.log_every(data_loader, 100, log, header):
         images = list(img.to(device) for img in images)
 
         if torch.cuda.is_available():
             torch.cuda.synchronize()
         model_time = time.time()
         outputs = model(images)
-
+        # print("output_before", outputs)
+        # for t in outputs:
+        #     print(t.items())
         outputs = [{k: v.to(cpu_device) for k, v in t.items()} for t in outputs]
         model_time = time.time() - model_time
 
         res = {target["image_id"].item(): output for target, output in zip(targets, outputs)}
+        #res格式
+        #res: {31: {'boxes': tensor([[319.7170, 260.0397, 341.0965, 285.8785],
+        #[319.0929, 265.0700, 334.4173, 285.9624]]), 'labels': tensor([7, 4]), 'scores': tensor([0.0515, 0.0514])}}
         evaluator_time = time.time()
         coco_evaluator.update(res)
         evaluator_time = time.time() - evaluator_time
@@ -101,7 +113,7 @@ def evaluate(model, data_loader, device):
 
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()
-    print("Averaged stats:", metric_logger)
+    log.print("Averaged stats:" + str(metric_logger))
     coco_evaluator.synchronize_between_processes()
 
     # accumulate predictions from all images
