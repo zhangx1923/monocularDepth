@@ -168,7 +168,7 @@ def collate_fn(batch):
 def trainEncoder(labeldata, opt, log):
     model = Detect_Model(True)
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-    device = torch.device('cpu')
+    #device = torch.device('cpu')
     model.to(device)
 
     trainset = Detect_DS(label_dir = labeldata, root_dir='dataset/img')
