@@ -32,6 +32,8 @@ if __name__ == "__main__":
     parser.add_argument('--momentum', help='momentum', required=False, type=float, default=0.9)
     parser.add_argument('--nw', help='num_workers', required=False, type=int, default=1)
     parser.add_argument('--ts', help='trainning dataset size', required=False, type=int, default=3)
+    parser.add_argument('--ads', help='all dataset size', required=False, type=int, default=5)
+    
     
 
     #执行哪一部分训练

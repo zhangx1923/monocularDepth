@@ -44,7 +44,7 @@ class GenerateData:
     # Pedestrian (coco person) coco 1 kitti 3
     # Cyclist (coco bicyle) coco 2 kitti 5
     # truck (coco truck)  coco 8 kitti 2
-        self.__type_to_int_coco  = {'Car':3, 'Pedestrian':1, 'Cyclist': 2, 'Truck': 8}
+        #self.__type_to_int_coco  = {'Car':3, 'Pedestrian':1, 'Cyclist': 2, 'Truck': 8}
         self.__type_to_int_coco  = {'Car':3, 'Pedestrian':1, 'Cyclist': 2}
 
     #parse txt file, and generate csv file from these txt files

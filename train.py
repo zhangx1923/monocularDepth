@@ -1,5 +1,5 @@
 from torch._C import dtype
-from model import EstDepth_Model, Distance_DS, Detect_Model, Detect_DS
+from model import EstDepth_Model, Distance_DS, Detect_Model, Detect_DS, Detect_Model1
 from tools import Visualization
 from sklearn.model_selection import KFold
 import torch
@@ -166,9 +166,9 @@ def collate_fn(batch):
 
 
 def trainEncoder(labeldata, opt, log):
-    model = Detect_Model(True)
+    model = Detect_Model1(True)
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-    #device = torch.device('cpu')
+    device = torch.device('cpu')
     model.to(device)
 
     trainset = Detect_DS(label_dir = labeldata, root_dir='dataset/img')
@@ -177,7 +177,7 @@ def trainEncoder(labeldata, opt, log):
     indices = torch.randperm(len(trainset)).tolist()
 
     trainset = torch.utils.data.Subset(trainset, indices[:opt.ts])
-    testset = torch.utils.data.Subset(testset, indices[opt.ts:])
+    testset = torch.utils.data.Subset(testset, indices[opt.ts:opt.ads])
 
     
 
@@ -212,11 +212,3 @@ def trainEncoder(labeldata, opt, log):
     PATH = log.file_location + '/encoder.pth'
     torch.save(model.state_dict(), PATH)
     return PATH
-
-# def inferenceEncoder(model_path):
-#     model = Detect_Model(False)
-#     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-#     # device = torch.device('cpu')
-#     model.to(device)
-#     model.load_state_dict(torch.load(model_path))
-#     model.eval()
