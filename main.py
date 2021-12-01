@@ -17,7 +17,7 @@ if __name__ == "__main__":
     
     #数据集参数
     parser.add_argument('--generate_data', help="是否重新生成数据,new--重新生成，old--旧数据", required=False, default="new", type=str)
-    parser.add_argument('--in_sample', help='the number of train set and val set', required=False, type=int, default=50)
+    parser.add_argument('--in_sample', help='the number of train set and val set', required=False, type=int, default=5)
     parser.add_argument('--random_sample', help="是否随机采样,1随机", required=False, default=1, type=int)
     #parser.add_argument('--percent', help="用于train的数据占in sample 的比例",required=False, type=float, default=.7)
     

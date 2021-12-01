@@ -1,0 +1,27 @@
+generating csv data....
+begin to train encoder part...
+Epoch: [0]  [0/1]  eta: 0:00:21  lr: 0.000005  loss: 2.1306 (2.1306)  loss_classifier: 1.3536 (1.3536)  loss_box_reg: 0.0436 (0.0436)  loss_objectness: 0.6997 (0.6997)  loss_rpn_box_reg: 0.0338 (0.0338)  time: 21.0270  data: 3.5856  max mem: 0
+Epoch: [0] Total time: 0:00:21 (21.2536 s / it)
+Running per image evaluation...
+Evaluate annotation type *bbox*
+DONE (t=0.02s).
+Test:  [0/1]  eta: 0:00:08  model_time: 4.6273 (4.6273)  evaluator_time: 0.0201 (0.0201)  time: 8.1460  data: 3.3864  max mem: 0
+Test: Total time: 0:00:08 (8.3506 s / it)
+Averaged stats:model_time: 4.6273 (4.6273)  evaluator_time: 0.0201 (0.0201)
+Accumulating evaluation results...
+DONE (t=0.01s).
+IoU metric: bbox
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.002
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.005
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.000
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.000
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.000
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.050
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.000
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.000
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.200
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.000
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.000
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.400
+Epoch: [1]  [0/1]  eta: 0:00:21  lr: 0.000005  loss: 2.1248 (2.1248)  loss_classifier: 1.3541 (1.3541)  loss_box_reg: 0.0436 (0.0436)  loss_objectness: 0.6934 (0.6934)  loss_rpn_box_reg: 0.0338 (0.0338)  time: 21.2686  data: 3.6608  max mem: 0
+Epoch: [1] Total time: 0:00:23 (23.3502 s / it)

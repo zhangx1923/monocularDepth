@@ -96,10 +96,10 @@ class Transform(object):
 
         #horizontally flip
         #图像翻转进行数据增强，随机翻转   都翻转等于都没有翻转
-        img, params = util.random_flip(
-            img, x_random=True, return_param=True)
-        bbox = util.flip_bbox(
-            bbox, (o_H, o_W), x_flip=params['x_flip'])
+        # img, params = util.random_flip(
+        #     img, x_random=True, return_param=True)
+        # bbox = util.flip_bbox(
+        #     bbox, (o_H, o_W), x_flip=params['x_flip'])
 
         return img, bbox, label, scaleH, scaleW
 
@@ -184,45 +184,6 @@ class Detect_DS(Dataset):
         #print(bbox.shape, image.shape)
         #return image.copy(), bbox.copy(), labels.copy(), [scaleH], [scaleW]
 
-
-
-# class Detect_DS(Dataset):
-#     def __init__(self, csv_file, root_dir, transform=None):
-#         """
-#         Args:
-#             label_dir (string): Path to the txt file with annotations.
-#             root_dir (string): Directory with all the images.
-#             transform (callable, optional): Optional transform to be applied
-#                 on a sample.
-#         """
-#         self.label = pd.read_csv(csv_file)
-#         self.root_dir = root_dir
-#         self.transform = transform
-
-#     def __len__(self):
-#         return len(self.label)
-
-#     #idx stands for image id (image name = "00..0"+idx + ".jpg")
-#     def __getitem__(self, idx):
-#         if torch.is_tensor(idx):
-#             idx = idx.tolist()
-
-#         img_name = os.path.join(self.root_dir,
-#                                 self.label.iloc[idx, 0])
-#         image = Image.open(img_name).convert("RGB").resize((1200,370))
-
-#         label_region_useful = self.label.iloc[idx, [1,5,6,7,8]]
-        
-#         #print(label_region_useful[0])
-#         targets = {}
-#         targets["label"] = label_region_useful[0]
-#         targets["boxes"] = [label_region_useful[1],label_region_useful[2],label_region_useful[3],label_region_useful[4]]
-#         # targets = np.array([targets])
-#         # label_region_useful = label_region_useful.astype('float').reshape(-1, 2)
-#         if self.transform is not None:
-#             image = self.transform(image)
-
-#         return image, targets
 
 #object detect model
 #pre_train_para means wherther use pretrained parameter, boolean

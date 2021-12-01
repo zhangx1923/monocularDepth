@@ -96,10 +96,9 @@ def evaluate(model, data_loader, log, device):
             torch.cuda.synchronize()
         model_time = time.time()
         outputs = model(images)
-
+        
         outputs = [{k: v.to(cpu_device) for k, v in t.items()} for t in outputs]
         model_time = time.time() - model_time
-
         res = {target["image_id"].item(): output for target, output in zip(targets, outputs)}
         #res格式
         #res: {31: {'boxes': tensor([[319.7170, 260.0397, 341.0965, 285.8785],
