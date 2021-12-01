@@ -24,6 +24,7 @@ if __name__ == "__main__":
     #模型参数
     parser.add_argument('--fold', help='k-fold cross validation', required=False, type=int, default=5)
     parser.add_argument('--epoch', help='epoch', required=False, type=int, default=10)
+    
     #batch size的设定对于encoder的train one epoch依旧生效
     parser.add_argument('--batch', help='batch size', required=False, type=int, default=4)
     parser.add_argument('--lr', help='learn rate', required=False, type=float, default=0.005)

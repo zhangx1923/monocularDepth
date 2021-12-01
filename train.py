@@ -194,9 +194,6 @@ def trainEncoder(labeldata, opt, log):
                             num_workers=opt.nw,\
                             collate_fn=collate_fn)
 
-    classes = ('Car', 'Van', 'Truck','Pedestrian', 'Person_sitting', 
-                'Cyclist', 'Tram', 'Misc')
-
     # construct an optimizer
     params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.SGD(params, lr=opt.lr, momentum=opt.momentum, weight_decay=opt.wd)

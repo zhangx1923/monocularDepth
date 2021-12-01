@@ -146,6 +146,8 @@ class Detect_DS(Dataset):
         labels, bbox = list(), list()
         # print(label_region)
         for l in label_region:
+            if l[0] not in type_to_int.keys():
+                continue
             labels.append(type_to_int[l[0]])
             bbox.append([l[i] for i in [4,5,6,7]])
 
@@ -227,7 +229,14 @@ def Detect_Model(pre_train_para):
     #device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     # replace the classifier with a new one, that has
     # num_classes which is user-defined
-    num_classes = 9  # 1 class (person) + background
+
+    #目前只检测kitti和coco重合的部分：
+    # car  cocotype 3 kitti 0
+    # Pedestrian coco 1 kitti 3
+    # bicycle coco 2 kitti 5
+    # truck  coco 8 kitti 2
+    num_classes = 4  # 1 class (person) + background
+    
     # get number of input features for the classifier
     in_features = model.roi_heads.box_predictor.cls_score.in_features
     # replace the pre-trained head with a new one
