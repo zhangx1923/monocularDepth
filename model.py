@@ -1,3 +1,4 @@
+from torch.nn.modules.linear import Linear
 from torchvision import models, transforms, ops
 from torchvision.io.image import read_image
 from torchvision.models.segmentation import fcn_resnet50, fcn_resnet101
@@ -206,7 +207,9 @@ def Detect_Model(pre_train_para):
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
     return model
 
-def Detect_Model1(pre_train_para):
+#pre_train_para  stands for whether use pretrained model
+#freeze stands for whether freeze the feature part weights and bias
+def Detect_Model1(pre_train_para, freeze):
     # load a pre-trained model for classification and return
     # only the features
     backbone = models.mobilenet_v2(pretrained=pre_train_para).features
@@ -239,26 +242,17 @@ def Detect_Model1(pre_train_para):
                     num_classes=4,
                     rpn_anchor_generator=anchor_generator,
                     box_roi_pool=roi_pooler)
+    # print(list(model.parameters())[-5:])
+
+    # for i,p in enumerate(model.parameters()):
+    #     print(i, p)
+    if freeze:
+        for i, p in enumerate(model.parameters()):
+            #只训练最后四层           
+            if i < 166:
+                p.requires_grad = False
+
     return model
-
-# class Detect_Model(nn.Module):
-#     def __init__(self):
-#         super().__init__()
-#         self.conv1 = nn.Conv2d(3, 6, 5)
-#         self.pool = nn.MaxPool2d(2, 2)
-#         self.conv2 = nn.Conv2d(6, 16, 5)
-#         self.fc1 = nn.Linear(16 * 5 * 5, 120)
-#         self.fc2 = nn.Linear(120, 84)
-#         self.fc3 = nn.Linear(84, 10)
-
-#     def forward(self, x):
-#         x = self.pool(F.relu(self.conv1(x)))
-#         x = self.pool(F.relu(self.conv2(x)))
-#         x = torch.flatten(x, 1) # flatten all dimensions except batch
-#         x = F.relu(self.fc1(x))
-#         x = F.relu(self.fc2(x))
-#         x = self.fc3(x)
-#         return x
 
 #input 4维度, xmin, ymin, xmax, ymax,
 #output 1维, zloc=distance

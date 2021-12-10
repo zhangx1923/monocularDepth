@@ -166,7 +166,8 @@ def collate_fn(batch):
 
 
 def trainEncoder(labeldata, opt, log):
-    model = Detect_Model1(True)
+    model = Detect_Model1(pre_train_para=True, freeze=True)
+
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     #device = torch.device('cpu')
     model.to(device)
@@ -178,8 +179,6 @@ def trainEncoder(labeldata, opt, log):
 
     trainset = torch.utils.data.Subset(trainset, indices[:opt.ts])
     testset = torch.utils.data.Subset(testset, indices[opt.ts:opt.ads])
-
-    
 
     trainloader = DataLoader(trainset,\
                             batch_size=opt.batch,\
